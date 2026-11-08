@@ -95,7 +95,9 @@
     border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);font:13px/1.4 Roboto,Arial,sans-serif}
   #ta-panel header{padding:14px 16px 8px;font-weight:500;font-size:15px}
   #ta-panel .sum{padding:0 16px 10px;color:#aaa}
-  #ta-panel ol{margin:0;padding:0 16px 0 40px;overflow:auto;flex:1}
+  #ta-panel ol{margin:0;padding:0 16px 0 40px;overflow:auto;flex:1 1 auto;min-height:0}
+  #ta-panel header,#ta-panel .sum,#ta-panel .msg,#ta-panel footer{flex:0 0 auto}
+  #ta-panel.up{top:auto;bottom:calc(100% + 8px)}
   #ta-panel li{padding:3px 0;color:#ddd} #ta-panel li .st{font-size:11px;margin-left:6px}
   #ta-panel .audio{color:#3ddc84} #ta-panel .swap{color:#64b5f6} #ta-panel .video{color:#ffb74d}
   #ta-panel footer{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid rgba(255,255,255,.1)}
@@ -142,6 +144,25 @@
 
   function closePanel() { if (panel) { panel.remove(); panel = null; } }
 
+  // The album column does not scroll, so the panel must fit the visible space:
+  // below the button down to the player bar, or above the button when there is more room there.
+  function placePanel() {
+    if (!panel || !btn) return;
+    const r = btn.getBoundingClientRect();
+    const bar = document.querySelector("ytmusic-player-bar");
+    const br = bar && bar.getBoundingClientRect();
+    const bottomEdge = br && br.height > 0 && br.top < innerHeight ? br.top : innerHeight;
+    const nav = document.querySelector("ytmusic-nav-bar");
+    const topEdge = nav ? nav.getBoundingClientRect().bottom : 64;
+    const below = bottomEdge - r.bottom - 16;
+    const above = r.top - topEdge - 16;
+    const up = below < 260 && above > below;
+    panel.classList.toggle("up", up);
+    panel.style.maxHeight = Math.max(160, Math.floor(up ? above : below)) + "px";
+  }
+  addEventListener("resize", placePanel);
+  addEventListener("scroll", placePanel, true);
+
   function refresh() {
     const k = albumKey();
     if (k && btn) mount();
@@ -185,6 +206,7 @@
     panel = el("div", { id: "ta-panel" }, el("header", { text: "True Audio" }), el("div", { class: "msg", text }),
       el("footer", {}, el("button", { class: "ghost", text: "Close", onclick: closePanel })));
     wrap.append(panel);
+    placePanel();
   }
 
   function showPanel(k, plan) {
@@ -254,6 +276,7 @@
     foot.append(close);
     panel = el("div", { id: "ta-panel" }, el("header", { text: plan.name }), el("div", { class: "sum", text: sum }), msg, list, foot);
     wrap.append(panel);
+    placePanel();
   }
 
   // YouTube Music is a single-page app: watch the URL.
